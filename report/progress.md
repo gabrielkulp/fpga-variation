@@ -1,4 +1,6 @@
 # Mid-Term Progress Report
+Gabriel Kulp, Matthew Phillips
+
 ## Updates
 We now have a better idea of the project space we're working in.
 For example, there are several approaches to designing an on-fabric fixture that are error-sensitive, and these different approaches are capable of measuring different tolerances.
