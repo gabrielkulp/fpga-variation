@@ -30,5 +30,5 @@ for n,c in ctx.cells:
 with open("bel_list", "w") as fp:
 	json.dump(bel_list, fp)
 with open("used_bels", "w") as fp:
-	json.dump(bel_list, fp)
+	json.dump(used_bels, fp)
   
