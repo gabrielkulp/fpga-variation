@@ -26,11 +26,17 @@ from amaranth.lib.cdc import FFSynchronizer
 #			m.d.comb += self.ring[i].eq(~self.ring[i+1])
 
 class Ring_Oscillator(Elaboratable):
-	def __init__(self, length, width):
+	def __init__(self, length, width, x, y):
+		if length > 7:
+			raise IndexError("iCE40 only has 8 lc per BEL")
+		if x < 1 or x > 24:
+			raise IndexError("X must be 1-24")
+		if y < 1 or y > 30:
+			raise IndexError("Y must be 1-30")
 		self.length   = length
 		self.width    = width
-		if self.width > 7:
-			raise NotImplementedError("iCE40 only has 8 lc per BEL")
+		self.x        = x
+		self.y        = y
 		self.counter  = Signal(width)
 		self.enable   = Signal()
 		self.reset    = Signal()
@@ -38,7 +44,7 @@ class Ring_Oscillator(Elaboratable):
 	def elaborate(self, platform):
 		m = Module()
 
-		cd_loop = ClockDomain("loop", async_reset=True)#, reset_less=True)
+		cd_loop = ClockDomain("loop", async_reset=True, local=True)
 		m.domains.loop = cd_loop
 
 		buffers_in  = Signal(self.length)
@@ -48,7 +54,7 @@ class Ring_Oscillator(Elaboratable):
 		for buf_in, buf_out, i in zip(buffers_in, buffers_out, range(self.length)):
 			inverter = Instance(
 				"SB_LUT4",
-				a_BEL        = f"X16/Y22/lc{i}",
+				a_BEL        = f"X{self.x}/Y{self.y}/lc{i}",
 				a_DONT_TOUCH = "TRUE",
 				p_LUT_INIT   = 0b01, # NOT gate
 				i_I0         = buf_in,
