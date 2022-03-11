@@ -5,7 +5,7 @@ import gateware
 if  __name__ == "__main__":
 	all_coords = []
 	for x in range(1,25): # 1-24
-		if x == 6 or x == 19: # RAM column
+		if x in [6, 19]: # RAM columns
 			continue
 		for y in range(1,31): # 1-30
 			all_coords.append((x,y))

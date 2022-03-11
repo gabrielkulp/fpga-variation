@@ -80,7 +80,7 @@ class Top(Elaboratable):
 		self.uart = UART(uart_pins, clk_freq=12000000, baud_rate=baud)
 		m.submodules += self.uart
 		
-		read_state = Signal(24, reset=12000000)
+		read_state = Signal(8, reset=20+self.cycle_count)
 
 		# auto-reply with data immediately
 		data = Signal(8)
@@ -140,6 +140,12 @@ def run(coords, cycle_count=64, sample_count=100, sample_rate=100, flash=True, v
 		sleep(1)
 
 	ser = serial.Serial('/dev/ttyUSB1', 115200)
+
+	# discard first read
+	ser.write(b'0')
+	ser.read(1)
+	sleep(1.0/sample_rate)
+
 	records = []
 	for _ in range(sample_count):
 		ser.write(b'0') # trigger measurement
