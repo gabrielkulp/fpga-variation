@@ -9,7 +9,7 @@ from amaranth_boards.icebreaker import *
 
 import serial
 from time import sleep
-from seven_seg import Seven_seg, seven_seg_resource
+from . import Seven_seg, seven_seg_resource
 
 def _divisor(freq_in, freq_out, max_ppm=None):
 	divisor = freq_in // freq_out

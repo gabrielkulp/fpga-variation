@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-from amaranth import *
-from amaranth_boards.icebreaker import ICEBreakerPlatform
-
 import serial
 from time import sleep
 
-from uart import UART
-from ring_oscillator import Ring_Oscillator
-from seven_seg import Seven_seg, seven_seg_resource
-from switches  import Switches,  switches_resource
+from amaranth import *
+from amaranth_boards.icebreaker import ICEBreakerPlatform
+
+from . import UART
+from . import Ring_Oscillator
+from . import Seven_seg, seven_seg_resource
+from . import Switches,  switches_resource
 
 baud = 115200
 
@@ -64,14 +64,17 @@ class Serial_Top(Elaboratable):
 		return m
 
 class Top(Elaboratable):
-	def __init__(self):
+	def __init__(self, x, y, cycle_count):
+		self.x = x
+		self.y = y
+		self.cycle_count = cycle_count
 		self.uart = None
-		self.ring = Ring_Oscillator(7, 8, 15, 18)
+		self.ring = Ring_Oscillator(7, 8, self.x, self.y)
 		self.byte_out = Seven_seg()
 
 	def elaborate(self, platform):
 		m = Module()
-		m.submodules += [self.byte_out, self.ring]
+		m.submodules += [self.ring, self.byte_out]
 
 		uart_pins = platform.request("uart")
 		self.uart = UART(uart_pins, clk_freq=12000000, baud_rate=baud)
@@ -101,7 +104,8 @@ class Top(Elaboratable):
 				empty.eq(0),
 			]
 			with m.If(read_state == 0):
-				m.d.sync += read_state.eq(30) # start countdown to next measurement
+				# start countdown to next measurement
+				m.d.sync += read_state.eq(20+self.cycle_count)
 		with m.If(tx_strobe):
 			m.d.sync += empty.eq(1)
 
@@ -110,9 +114,9 @@ class Top(Elaboratable):
 			m.d.sync += read_state.eq(read_state - 1)
 
 		with m.Switch(read_state):
-			with m.Case(30):
+			with m.Case(20+self.cycle_count):
 				m.d.sync += self.ring.reset.eq(0) # enable
-			with m.Case(20):
+			with m.Case(10+self.cycle_count):
 				m.d.sync += self.ring.enable.eq(1) # start counting
 			with m.Case(10):
 				m.d.sync += self.ring.enable.eq(0) # stop counting
@@ -123,21 +127,27 @@ class Top(Elaboratable):
 		return m
 
 
-board = ICEBreakerPlatform()
-board.add_resources([seven_seg_resource, switches_resource])
-board.build(Top(), do_program=True,
-	nextpnr_opts="--ignore-loops --timing-allow-fail")
+def _flash(coords, cycle_count):
+	x,y = coords
+	board = ICEBreakerPlatform()
+	board.add_resources([seven_seg_resource, switches_resource])
+	board.build(Top(x, y, cycle_count), do_program=True,
+		nextpnr_opts="--ignore-loops --timing-allow-fail")
 
-sleep(1)
-ser = serial.Serial('/dev/ttyUSB1', 115200)
-records = []
-try:
-	while True:
-		ser.write(b'1')
-		records.append(ord(ser.read(1))/10.0)
-		print(records[-1], end=", ", flush=True)
-		sleep(0.1)
-except KeyboardInterrupt:
-	print()
-	print(len(records), "samples")
-	print(round(sum(records)/len(records), 4), "average")
+def run(coords, cycle_count=64, sample_count=100, sample_rate=100, flash=True, verbose=False):
+	if flash:
+		_flash(coords, cycle_count)
+		sleep(1)
+
+	ser = serial.Serial('/dev/ttyUSB1', 115200)
+	records = []
+	for _ in range(sample_count):
+		ser.write(b'0') # trigger measurement
+		new_val = ord(ser.read(1))/cycle_count
+		records.append(new_val)
+		print(new_val, end=", ", flush=True) if verbose else ()
+		sleep(1.0/sample_rate)
+
+	print() if verbose else ()
+	print(f"At {coords} the average is", round(sum(records)/len(records), 2))
+	return records

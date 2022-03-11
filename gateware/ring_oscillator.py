@@ -47,31 +47,49 @@ class Ring_Oscillator(Elaboratable):
 		cd_loop = ClockDomain("loop", async_reset=True, local=True)
 		m.domains.loop = cd_loop
 
-		buffers_in  = Signal(self.length)
-		buffers_out = Signal(self.length)
-		
+		ring_in  = Signal(self.length)
+		ring_out = Signal(self.length)
+
 		# make main loop
-		for buf_in, buf_out, i in zip(buffers_in, buffers_out, range(self.length)):
+		for buf_in, buf_out, i in zip(ring_in, ring_out, range(self.length)):
 			inverter = Instance(
 				"SB_LUT4",
 				a_BEL        = f"X{self.x}/Y{self.y}/lc{i}",
-				a_DONT_TOUCH = "TRUE",
-				p_LUT_INIT   = 0b01, # NOT gate
-				i_I0         = buf_in,
-				i_I1         = Const(0),
-				i_I2         = Const(0),
-				i_I3         = Const(0),
-				o_O          = buf_out
+				a_DONT_TOUCH = True,
+				a_BLACKBOX   = True,
+				p_LUT_INIT   = Const(0b01), # NOT gate
+				i_I0 = buf_in,
+				i_I1 = Const(0),
+				i_I2 = Const(0),
+				i_I3 = Const(0),
+				o_O  = buf_out
 			)
 			m.submodules += inverter
+		
+#		m.d.comb += ring_in[0].eq(ring_out[-1] & ~self.reset)
+		out_sig = Signal()
+		m.d.comb += ring_in[0].eq(out_sig)
+		starter = Instance("SB_LUT4",
+			a_BEL        = f"X{self.x}/Y{self.y}/lc7",
+			a_DONT_TOUCH = True,
+			a_BLACKBOX   = True,
+			p_LUT_INIT   = Const(0b1000,4), # AND gate
+			i_I0 = ring_out[-1],
+			i_I1 = ~self.reset,
+			i_I2 = Const(0),
+			i_I3 = Const(0),
+			o_O  = out_sig)
+		m.submodules += starter
+
+
 		# connect ends of loop together
-		m.d.comb += buffers_in.eq(Cat(buffers_out[-1], buffers_out[0:-1]))
+		m.d.comb += ring_in.bit_select(1,self.length-1).eq(ring_out[0:-1])
+#		m.d.comb += ring_in.eq(Cat(ring_out[-1], ring_out[0:-1]))
 
 		# drive this clock domain with the output of the loop
-		m.d.comb += ClockSignal("loop").eq(buffers_out[-1])
+		m.d.comb += ClockSignal("loop").eq(ring_out[-1])
 
 		reset_mask = Repl(~self.reset, self.width)
-
 		m.d.loop += self.counter.eq((self.counter + self.enable) & reset_mask)
 
 		return m
