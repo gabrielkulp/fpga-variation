@@ -149,7 +149,7 @@ def run(coords, cycle_count=64, sample_count=100, sample_rate=100, flash=True, v
 	records = []
 	for _ in range(sample_count):
 		ser.write(b'0') # trigger measurement
-		new_val = ord(ser.read(1))/cycle_count
+		new_val = 12.0 * ord(ser.read(1)) / cycle_count
 		records.append(new_val)
 		print(new_val, end=", ", flush=True) if verbose else ()
 		sleep(1.0/sample_rate)

@@ -44,11 +44,12 @@ def img_show(bel_means,mean,std):
     plt.title('Ram columns omitted', fontsize=10)
     plt.show()
 
-def histogram(bel_means,mean,std):
+def histogram(bel_means):
     fig,ax=plt.subplots()
-    bel_zscores=(bel_means-mean)/std
+    bel_zscores=bel_means
     ax.hist(bel_zscores,bins=30)
-    plt.title('iCEBreaker FPGA BEL Z-Score Frequency')
+    plt.title('iCEBreaker FPGA BEL Frequency Distribution')
+    plt.xlabel('Ring Oscillator Frequency (MHz)')
     plt.show()
     
 def result_stats(file_name):
@@ -73,7 +74,7 @@ def result_stats(file_name):
 
     #graphs
     img_show(panda_mean,list_mean,list_std)
-    histogram(panda_mean,list_mean,list_std)
+    histogram(panda_mean)
 
     #info
     print(file_name)
@@ -83,5 +84,5 @@ def result_stats(file_name):
     print('Std:',list_std)
     print('Var:',list_variance)
 
-result_stats('gabriel-results.json')
-result_stats('matthew-results.json')
+result_stats('board0-raw.json')
+result_stats('board1-raw.json')
