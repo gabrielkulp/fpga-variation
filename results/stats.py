@@ -2,6 +2,7 @@
 
 import statistics
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 import pandas as pd
 import numpy as np
 import json
@@ -40,20 +41,34 @@ def img_show(bel_means,mean,std,zscore=True):
         if 30==y:
             x+=1
             y=0
-    new_img=np.zeros((30,24),dtype=float)
-    new_img[:,0:5]=img[:,0:5]
-    new_img[:,6:19]=img[:,5:18]
-    new_img[:,20:]=img[:,18:]
-    graph=plt.imshow(new_img,interpolation='None',origin='lower')
+    new_img=np.zeros((31,25),dtype=float)
+    new_img[1:,1:6]=img[:,0:5]
+    new_img[1:,7:19]=img[:,5:17]
+    new_img[1:,20:]=img[:,17:]
+    fig,ax=plt.subplots()
+    graph=ax.imshow(new_img,interpolation='None',origin='lower')
+    ax.add_patch(Rectangle((5.55, -0.5), 1, 31,
+            edgecolor = 'black',
+            facecolor = 'white',
+            fill=True,
+            lw=0))
+    ax.add_patch(Rectangle((18.55, -0.5), 1, 31,
+            edgecolor = 'black',
+            facecolor = 'white',
+            fill=True,
+            lw=0))
+    ax.set_xlim(xmin=0.5)
+    ax.set_ylim(ymin=0.5)
     graph_colorbar=plt.colorbar(graph)
     if zscore:
         graph_colorbar.set_label('Z-Score')
     else:
-        graph_colorbar.set_label('MHz difference between BELs')
+        graph_colorbar.set_label('MHz difference squared between BELs')
     if zscore:
         plt.title('iCEBreaker FPGA BEL Variance', fontsize=12)
     else:
         plt.title('iCEBreaker Board Comparision', fontsize=12)
+    
     plt.show()
 
 def histogram(bel_means):
