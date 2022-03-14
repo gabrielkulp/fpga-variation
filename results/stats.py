@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import statistics as stats
+import statistics
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -22,26 +22,38 @@ def unpack_list(r):
     l.sort()
     return l
 
-def zscore(x,mean,std):
+def get_zscore(x,mean,std):
     z=(x-mean)/std
     return z
 
-def img_show(bel_means,mean,std):
+def img_show(bel_means,mean,std,zscore=True):
     img=np.zeros((30,22),dtype=float)
     x=0
     y=0
     for b in bel_means:
         #x and y swapped for graph
-        img[y,x]=zscore(b,mean,std)
+        if zscore:
+            img[y,x]=get_zscore(b,mean,std)
+        else:
+            img[y,x]=b**2
         y+=1
         if 30==y:
             x+=1
             y=0
-    graph=plt.imshow(img,interpolation='None',origin='lower')
+    new_img=np.zeros((30,24),dtype=float)
+    new_img[:,0:5]=img[:,0:5]
+    new_img[:,6:19]=img[:,5:18]
+    new_img[:,20:]=img[:,18:]
+    graph=plt.imshow(new_img,interpolation='None',origin='lower')
     graph_colorbar=plt.colorbar(graph)
-    graph_colorbar.set_label('Z-Score')
-    plt.suptitle('iCEBreaker FPGA BEL Variance',x=.54,fontsize=12)
-    plt.title('Ram columns omitted', fontsize=10)
+    if zscore:
+        graph_colorbar.set_label('Z-Score')
+    else:
+        graph_colorbar.set_label('MHz difference between BELs')
+    if zscore:
+        plt.title('iCEBreaker FPGA BEL Variance', fontsize=12)
+    else:
+        plt.title('iCEBreaker Board Comparision', fontsize=12)
     plt.show()
 
 def histogram(bel_means):
@@ -68,9 +80,9 @@ def result_stats(file_name):
     #list values are overall(all bels combined)
     list_min=results_list[0]
     list_max=results_list[len(results_list)-1]
-    list_mean=stats.mean(results_list)
-    list_std=stats.stdev(results_list,list_mean)
-    list_variance=stats.variance(results_list,list_mean)
+    list_mean=statistics.mean(results_list)
+    list_std=statistics.stdev(results_list,list_mean)
+    list_variance=statistics.variance(results_list,list_mean)
 
     #graphs
     img_show(panda_mean,list_mean,list_std)
@@ -84,5 +96,27 @@ def result_stats(file_name):
     print('Std:',list_std)
     print('Var:',list_variance)
 
-result_stats('board0-raw.json')
-result_stats('board1-raw.json')
+    return results_panda,results_list
+
+def difference(rp0,rl0,rp1,rl1):
+    complete_list=rl0+rl1
+    complete_list.sort()
+    complete_mean=statistics.mean(complete_list)
+    complete_std=statistics.stdev(complete_list,complete_mean)
+    complete_var=statistics.variance(complete_list,complete_mean)
+    diff_rp=rp0-rp1
+    diff_mean=diff_rp.mean()
+    img_show(diff_mean,complete_mean,complete_std,zscore=False)
+    print('Overall min:',complete_list[0])
+    print('Overall max:',complete_list[len(complete_list)-1])
+    print('Overall mean:',complete_mean)
+    print('Overall std:',complete_std)
+    print('Overall var:',complete_var)
+
+def stats(file0,file1):
+    rp0,rl0=result_stats(file0)
+    rp1,rl1=result_stats(file1)
+    difference(rp0,rl0,rp1,rl1)
+
+
+stats('board0-raw.json','board1-raw.json')
