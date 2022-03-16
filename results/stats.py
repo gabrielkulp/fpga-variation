@@ -63,11 +63,9 @@ def img_show(bel_means,mean,std,zscore=True):
     if zscore:
         graph_colorbar.set_label('Z-Score')
     else:
-        graph_colorbar.set_label('MHz difference squared between BELs')
-    if zscore:
-        plt.title('iCEBreaker FPGA BEL Variance', fontsize=12)
-    else:
-        plt.title('iCEBreaker Board Comparision', fontsize=12)
+        graph_colorbar.set_label('Difference Squared (MHz²)')
+    plt.xlabel('Bel X Coordinate')
+    plt.ylabel('Bel Y Coordinate')
     
     plt.show()
 
@@ -75,8 +73,8 @@ def histogram(bel_means):
     fig,ax=plt.subplots()
     bel_zscores=bel_means
     ax.hist(bel_zscores,bins=30)
-    plt.title('iCEBreaker FPGA BEL Frequency Distribution')
     plt.xlabel('Ring Oscillator Frequency (MHz)')
+    plt.ylabel('Bel Count')
     plt.show()
     
 def result_stats(file_name):
